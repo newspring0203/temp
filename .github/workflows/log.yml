@@ -1,0 +1,27 @@
+name: Log commit
+
+on:
+  push:
+
+jobs:
+  log:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Get modified file
+        id: changes
+        run: |
+          echo "file=$(jq -r '.head_commit.modified[0]' <<< '${{ toJson(github.event) }}')" >> $GITHUB_OUTPUT
+
+      - name: Send log to Google Sheet
+        run: |
+          curl -X POST "${{ secrets.GS_WEBHOOK_URL }}" \
+          -H "Content-Type: application/json" \
+          -d '{
+            "repo": "'"${{ github.repository }}"'",
+            "file": "'"${{ steps.changes.outputs.file }}"'",
+            "message": "'"${{ github.event.head_commit.message }}"'",
+            "url": "'"${{ github.event.head_commit.url }}"'"
+          }'
